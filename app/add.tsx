@@ -33,7 +33,7 @@ const add = () => {
                         <MenuOption onSelect={() => Alert.alert('Menu Hapus Ditekan')}>
                             <View style={{ flexDirection: 'row', alignItems: 'center', padding: 10 }}>
                                 <Ionicons name="trash-outline" size={20} color="#444" style={{ marginRight: 10 }} />
-                                <Text>Hapus</Text>
+                                <Text>Hapusss</Text>
                             </View>
                         </MenuOption>
 
