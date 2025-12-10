@@ -1,20 +1,61 @@
 import { Colors } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
-import React from 'react';
-import { Alert, Text } from "react-native";
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { Text } from "react-native";
 // 1. Perbaiki spasi pada import
+import { saveOrUpdateNote, toggleArchiveNote, togglePinNote } from "@/service/notesServices";
 import { Platform, StatusBar, StyleSheet, TextInput, TouchableOpacity, View, useColorScheme } from 'react-native';
 import { Menu, MenuOption, MenuOptions, MenuTrigger } from 'react-native-popup-menu';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const add = () => {
-    // 2. WAJIB: Panggil hook ini agar variabel colorScheme tersedia
+export default function HomeScreen() {
+    const router = useRouter();
+    const params = useLocalSearchParams();
     const colorScheme = useColorScheme();
 
+    const [title, setTitle] = useState('');
+    const [content, setContent] = useState('');
+    const [ isPinned, setIsPinned ] = useState(false);
+    const [ isArchived, setIsArchived ] = useState(false);
+
+    const [noteId, setNoteId] = useState<string | null>(null)
+
+    useEffect(() => {
+        if (params.id) {
+            setNoteId(params.id as string)
+            setTitle(params.title as string || '')
+            setContent(params.content as string || '')
+
+            setIsPinned(params.isPinned === 'true');
+            setIsArchived(params.isArchived === 'true');
+        }
+    },[params])
+
+    const handleBack = async () => {
+        await saveOrUpdateNote(noteId, title, content)
+        router.back()
+    }
+
+    const handlePint = async() => {
+        if (!noteId) return
+        const result = await togglePinNote(noteId, isPinned);
+        if (result?.success) {
+            // setIsPinned(result.newStatus);
+        }
+    }
+
+    const handleArchive = async () => {
+        if (!noteId) return
+        const result = await toggleArchiveNote(noteId, isArchived)
+        if (result?.success) {
+            router.back()
+        }
+    }
     return (
         <SafeAreaView style={styles.safeArea}>
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => { }}>
+                <TouchableOpacity onPress={handleBack}>
                     <Ionicons name="arrow-back" size={28} color="black" />
                 </TouchableOpacity>
                 <View style={{ flex: 1 }} />
@@ -23,20 +64,19 @@ const add = () => {
                         <Ionicons name="ellipsis-vertical" size={24} color="black" />
                     </MenuTrigger>
                     <MenuOptions customStyles={{ optionsContainer: { marginTop: 40, borderRadius: 8 } }}>
-                        <MenuOption onSelect={() => Alert.alert('Menu Pin Ditekan')}>
+                        <MenuOption onSelect={handlePint}>
                             <View style={{ flexDirection: 'row', alignItems: 'center', padding: 10 }}>
                                 <Ionicons name="pin-outline" size={20} color="#444" style={{ marginRight: 10 }} />
-                                <Text>Sematkan (Pinned)</Text>
+                                <Text>Sematkan</Text>
                             </View>
                         </MenuOption>
 
-                        <MenuOption onSelect={() => Alert.alert('Menu Hapus Ditekan')}>
+                        <MenuOption onSelect={handleArchive}>
                             <View style={{ flexDirection: 'row', alignItems: 'center', padding: 10 }}>
-                                <Ionicons name="trash-outline" size={20} color="#444" style={{ marginRight: 10 }} />
-                                <Text>Hapusss</Text>
+                                <Ionicons name="archive-outline" size={20} color="#444" style={{ marginRight: 10 }} />
+                                <Text>Arsip</Text>
                             </View>
                         </MenuOption>
-
                     </MenuOptions>
                 </Menu>
             </View>
@@ -44,19 +84,21 @@ const add = () => {
                 <View style={{ flex: 1 }}>
                     <TextInput
                         placeholder="Titlee"
+                        value={title}
+                        onChangeText={setTitle}
                         style={{ height: 50, borderColor: 'gray', marginBottom: 10, paddingHorizontal: 10, fontSize: 20, fontWeight: 'bold', color: Colors[colorScheme ?? 'light'].text }}
                     />
                     <TextInput
                         placeholder='Deskripsi'
                         placeholderTextColor="#888"
+                        value={content}
+                        onChangeText={setContent}
                         multiline={true}
                         numberOfLines={4}
                         style={{
                             borderColor: 'gray',
                             flex: 1,
-                            // height: '100%' dihapus atau diganti flex: 1 agar mengisi sisa ruang
                             fontSize: 18,
-                            // Sekarang ini tidak akan error lagi
                             color: Colors[colorScheme ?? 'light'].text,
                             paddingVertical: 10,
                             textAlignVertical: 'top',
@@ -70,7 +112,7 @@ const add = () => {
     )
 }
 
-export default add
+// export default add
 
 const styles = StyleSheet.create({
     safeArea: {
