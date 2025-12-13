@@ -1,6 +1,8 @@
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import auth, { db } from '@/service/firebaseConfig';
+import { toggleArchiveNote, togglePinNote, toggleTrashNote } from '@/service/notesServices';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation, useRouter } from 'expo-router';
 import { signOut } from 'firebase/auth';
@@ -10,18 +12,6 @@ import { Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'r
 import { ActivityIndicator, FAB, PaperProvider } from 'react-native-paper';
 import { Menu, MenuOption, MenuOptions, MenuTrigger } from 'react-native-popup-menu';
 
-// const notesData = [
-//   { id: 1, title: 'Catatan Pertama', content: 'Ini adalah isi dari catatan pertama saya.' },
-//   { id: 2, title: 'Belanja', content: 'Beli susu, roti, dan telur di toko.' },
-//   { id: 3, title: 'Ide Proyek', content: 'Membuat aplikasi catatan sederhana menggunakan React Native.' },
-//   { id: 4, title: 'Meeting dengan Tim', content: 'Jangan lupa meeting dengan tim pada hari Jumat jam 10 pagi.' },
-//   { id: 5, title: 'Liburan', content: 'Rencanakan liburan ke Bali bulan depan.' },
-//   { id: 6, title: 'Buku yang Ingin Dibaca', content: 'The Pragmatic Programmer, Clean Code, dan Design Patterns.' },
-//   { id: 7, title: 'Resep Masakan', content: 'Coba resep baru untuk membuat pasta carbonara.' },
-//   { id: 8, title: 'Olahraga', content: 'Jadwalkan olahraga rutin setiap pagi selama 30 menit.' },
-//   { id: 9, title: 'Proyek Sampingan', content: 'Mulai proyek sampingan untuk belajar lebih banyak tentang AI.' },
-//   { id: 10, title: 'Catatan Penting', content: 'Ingat untuk selalu backup data penting secara berkala.' },
-// ];
 
 interface Note {
   id: string,
@@ -29,6 +19,7 @@ interface Note {
   content: string,
   isPinned: boolean,
   isArchived: boolean,
+  isTrashed: boolean,
   cretedAt: any,
   updatedAt: any
 }
@@ -42,6 +33,10 @@ export default function HomeScreen() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isPinned, setIsPinned] = useState(false);
+  const [isArchived, setIsArchived] = useState(false);
+  const [isTrashed, setIsTrashed] = useState(false);
+  const [noteId, setNoteId] = useState<string | null>(null);
 
   const handleLogout = () => {
     Alert.alert(
@@ -61,41 +56,89 @@ export default function HomeScreen() {
 
   };
 
-useEffect(() => {
-  const unsubscribeAuth = auth.onAuthStateChanged((user) => {
-    if (user) {
-      const q = query(
-        collection(db, 'users', user.uid, 'notes'),
-        where('isTrashed', '==', false),
-        where('isArchived', '==', false),
-        // PERBAIKAN: Tambahkan 'd' menjadi 'updatedAt'
-        orderBy('updatedAt', 'desc') 
-      );
 
-      const unsubscribeSnapshot = onSnapshot(q, (snapshot) => {
-        const notesData: Note[] = [];
-        snapshot.forEach((doc) => {
-          notesData.push({ id: doc.id, ...doc.data() } as Note);
+  const handlePin = async () => {
+    for (const id of selectedIds) {
+      const note = notes.find(n => n.id == id);
+      if (note) {
+        await togglePinNote(id, note.isPinned)
+      }
+    }
+  };
+
+  const selectedNotes = notes.filter(n => selectedIds.includes(n.id));
+  const isAllPinned = selectedNotes.length > 0 && selectedNotes.every(n => n.isPinned)
+
+  const handleArchive = async () => {
+    for (const id of selectedIds) {
+      const note = notes.find(n => n.id == id);
+      if (note) {
+        await toggleArchiveNote(id, note.isArchived)
+      }
+    }
+  };
+
+  //fungsi hapus
+  const handleDelete = async () => {
+    Alert.alert(
+      "KOnfirmasi Hapus",
+      "Apakah kamu yakin ingin menghapus catatan ini?",
+      [
+        {
+          text: "Batal",
+          style: "cancel"
+        },
+        {
+          text: "Ya",
+          style: "destructive",
+          onPress: async () => {
+            // if (!noteId) return;
+            for (const id of selectedIds) {
+              const note = notes.find(n => n.id == id);
+              if (note) {
+                await toggleTrashNote(id, false)
+              }
+            }
+          }
+        }
+      ]
+    )
+  }
+
+  useEffect(() => {
+    const unsubscribeAuth = auth.onAuthStateChanged((user) => {
+      if (user) {
+        const q = query(
+          collection(db, 'users', user.uid, 'notes'),
+          where('isTrashed', '==', false),
+          where('isArchived', '==', false),
+          orderBy('updatedAt', 'desc')
+        );
+
+        const unsubscribeSnapshot = onSnapshot(q, (snapshot) => {
+          const notesData: Note[] = [];
+          snapshot.forEach((doc) => {
+            notesData.push({ id: doc.id, ...doc.data() } as Note);
+          });
+
+          const pinned = notesData.filter(n => n.isPinned);
+          const regular = notesData.filter(n => !n.isPinned);
+          setNotes([...pinned, ...regular]);
+          setLoading(false);
+        }, (error) => {
+          console.log("Error Firestore:", error);
+          setLoading(false);
         });
 
-        const pinned = notesData.filter(n => n.isPinned);
-        const regular = notesData.filter(n => !n.isPinned);
-        setNotes([...pinned, ...regular]);
+        return () => unsubscribeSnapshot();
+      } else {
         setLoading(false);
-      }, (error) => {
-        console.log("Error Firestore:", error); 
-        setLoading(false);
-      });
+        setNotes([]);
+      }
+    });
 
-      return () => unsubscribeSnapshot();
-    } else {
-      setLoading(false);
-      setNotes([]);
-    }
-  });
-
-  return () => unsubscribeAuth();
-}, []);
+    return () => unsubscribeAuth();
+  }, []);
 
   // const renderItem = ({ item }: { item: Note }) => (
   //   <TouchableOpacity
@@ -133,6 +176,7 @@ useEffect(() => {
     )
   })
 
+
   useEffect(() => {
     if (isSelectionMode) {
       navigation.setOptions({
@@ -141,13 +185,18 @@ useEffect(() => {
             <Pressable onPress={() => setSelectedIds([])}>
               <Ionicons name="close" size={24} color="black" style={{ marginRight: 15 }} />
             </Pressable>
-            <Pressable onPress={() => alert('Sematkan')}>
-              <Ionicons name="pin-outline" size={24} color="black" style={{ marginRight: 20 }} />
+            <Pressable onPress={handlePin}
+            >
+              <MaterialCommunityIcons 
+                name={isAllPinned ? "pin-off-outline" : "pin-outline"}
+                size={24} color="black" style={{marginRight: 20}}
+              />
+              {/* <Ionicons name="pin-outline" size={24} color="black" style={{ marginRight: 20 }} /> */}
             </Pressable>
-            <Pressable onPress={() => alert('arsipkan')}>
+            <Pressable onPress={handleArchive}>
               <Ionicons name="archive-outline" size={24} color="black" style={{ marginRight: 20 }} />
             </Pressable>
-            <Pressable onPress={() => alert('hapus')}>
+            <Pressable onPress={handleDelete}>
               <Ionicons name="trash-outline" size={24} color="black" style={{ marginRight: 15 }} />
             </Pressable>
           </View>
@@ -183,7 +232,7 @@ useEffect(() => {
   }, [navigation, isSelectionMode, selectedIds]
   );
 
-    const handleLongPress = (id: string) => {
+  const handleLongPress = (id: string) => {
     if (selectedIds.includes(id)) {
       setSelectedIds(selectedIds.filter(item => item !== id));
     } else {
@@ -241,55 +290,56 @@ useEffect(() => {
             )}
           </View>
           {loading ? (
-            <View style={{flex: 1, justifyContent: 'center'}}>
-              <ActivityIndicator size='large' color='#4B0082'/>
+            <View style={{ flex: 1, justifyContent: 'center' }}>
+              <ActivityIndicator size='large' color='#4B0082' />
             </View>
-          ): (
+          ) : (
             <FlatList
-            data={filteredNotes}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={{
-              paddingTop: 16,
-              paddingBottom: 16,
-              paddingHorizontal: 10 // Samakan dengan padding container
-            }}
-            ListEmptyComponent={
-              <View style={{alignItems: 'center', marginTop: 50}}>
-                <Text style={{color: '#8e8e93'}}>Catatan belum dibuat</Text>
-              </View>
-            }
-            renderItem={({ item }) => {
-              const isSelected = selectedIds.includes(item.id);
+              data={filteredNotes}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={{
+                paddingTop: 16,
+                paddingBottom: 16,
+                paddingHorizontal: 10
+              }}
+              ListEmptyComponent={
+                <View style={{ alignItems: 'center', marginTop: 50 }}>
+                  <Text style={{ color: '#8e8e93' }}>Catatan belum dibuat</Text>
+                </View>
+              }
+              renderItem={({ item }) => {
+                const isSelected = selectedIds.includes(item.id);
 
-              return (
-                <Pressable
-                  onLongPress={() => handleLongPress(item.id)}
-                  onPress={() => handlePress(item.id)}
-                  style={[
-                    styles.cardItem,
-                    isSelected ? styles.cardSelected : styles.cardNormal
-                  ]}
-                >
-                  <View style={styles.cardHeader}>
-                    <Text style={styles.titleText} numberOfLines={1}>{item.title}</Text>
-                    {isSelected ? (
-                      <Ionicons name="checkmark-circle" size={24} color="#4B0082" />
-                    ) : item.isPinned ? (
-                      <Ionicons name="pin" size={20} color="#4B0082" />
-                    ) : null
-                  }
-                  </View>
-                  <Text style={styles.contentText}>{item.content}</Text>
-                  <Text style={styles.cardDate}>
-                    {item.updatedAt?.toDate ? item.updatedAt.toDate().toLocaleDateString('id-ID'): ''}
-                  </Text>
-                </Pressable>
-              );
-            }}
-          />
+                return (
+                  <Pressable
+                    onLongPress={() => handleLongPress(item.id)}
+                    onPress={() => handlePress(item.id)}
+                    style={[
+                      styles.cardItem,
+                      isSelected ? styles.cardSelected : styles.cardNormal
+                    ]}
+                  >
+                    <View style={styles.cardHeader}>
+                      <Text style={styles.titleText} numberOfLines={1}>{item.title}</Text>
+                      {isSelected ? (
+                        <Ionicons name="checkmark-circle" size={24} color="#4B0082" />
+                      ) : item.isPinned ? (
+                        <MaterialCommunityIcons name="pin-outline" size={20} color="#4B0082"/>
+                        // <Ionicons name="pin" size={20} color="#4B0082" />
+                      ) : null
+                      }
+                    </View>
+                    <Text style={styles.contentText}>{item.content}</Text>
+                    <Text style={styles.cardDate}>
+                      {item.updatedAt?.toDate ? item.updatedAt.toDate().toLocaleDateString('id-ID') : ''}
+                    </Text>
+                  </Pressable>
+                );
+              }}
+            />
           )
-        }
-          
+          }
+
           {!isSelectionMode && (
             <FAB
               style={[styles.fab, { backgroundColor: '#4B0082' }]}
@@ -387,12 +437,12 @@ const styles = StyleSheet.create({
   titleText: {
     fontWeight: 'bold',         // font-bold
     fontSize: 18,               // text-lg
-    color: '#000',    
+    color: '#000',
     flex: 1          // default text color
   },
   contentText: {
     color: '#6B7280',           // text-gray-500
-    marginTop: 4,  
+    marginTop: 4,
     marginBottom: 10             // mt-1
   },
 });

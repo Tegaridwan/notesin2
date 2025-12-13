@@ -6,21 +6,18 @@ export const saveOrUpdateNote = async (id: string | null, title: string, content
     const user = auth.currentUser;
     if (!user) return;
 
-    // VALIDASI: Kalau judul & isi kosong dua-duanya, gak usah simpan
     if (title.trim() === '' && content.trim() === '') {
       return; 
     }
 
     if (id) {
-      // --- LOGIKA UPDATE (Jika ID ada) ---
       const noteRef = doc(db, 'users', user.uid, 'notes', id);
       await updateDoc(noteRef, {
         title: title,
         content: content,
-        updatedAt: serverTimestamp(), // Update waktu edit
+        updatedAt: serverTimestamp(),
       });
     } else {
-      // --- LOGIKA CREATE (Jika ID null/baru) ---
       const notesRef = collection(db, 'users', user.uid, 'notes');
       await addDoc(notesRef, {
         title: title,
@@ -36,7 +33,7 @@ export const saveOrUpdateNote = async (id: string | null, title: string, content
     console.error("Gagal auto-save:", error);
   }
 };
-
+//fungsi  pin
 export const togglePinNote = async (id: string, currentStatus: boolean) => {
   try {
     const user = auth.currentUser;
@@ -44,7 +41,7 @@ export const togglePinNote = async (id: string, currentStatus: boolean) => {
 
     const noteRef = doc(db, 'users', user.uid, 'notes', id);
     await updateDoc(noteRef, {
-      isPinned: !currentStatus, // Balik status (True <-> False)
+      isPinned: !currentStatus,
       updatedAt: serverTimestamp()
     });
     return { success: true, newStatus: !currentStatus };
@@ -54,7 +51,7 @@ export const togglePinNote = async (id: string, currentStatus: boolean) => {
   }
 };
 
-// 2. Fungsi Toggle Arsip
+//Fungsi Toggle Arsip
 export const toggleArchiveNote = async (id: string, currentStatus: boolean) => {
   try {
     const user = auth.currentUser;
@@ -72,3 +69,20 @@ export const toggleArchiveNote = async (id: string, currentStatus: boolean) => {
     return { success: false };
   }
 };
+
+//funsgi hapus
+export const toggleTrashNote =  async (id: string, currentStatus: boolean) => {
+  try {
+    const user = auth.currentUser;
+    if (!user) return;
+    const noteRef = doc(db, 'users', user.uid, 'notes', id);
+    await updateDoc(noteRef, {
+      isTrashed: !currentStatus,
+      updatedAt: serverTimestamp()
+    });
+    return {success: true, newStatus: !currentStatus};
+  } catch (error) {
+    console.error("Gagal hapus", error);
+    return {success: false};
+  }
+}

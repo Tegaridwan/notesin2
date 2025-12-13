@@ -1,10 +1,18 @@
 import { Colors } from '@/constants/theme';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
     Alert // Tambahkan Alert untuk feedback
     ,
+
+
+
+
+
+
+
+
     Platform,
     SafeAreaView,
     StatusBar,
@@ -16,10 +24,9 @@ import {
     useColorScheme
 } from 'react-native';
 import { Menu, MenuOption, MenuOptions, MenuTrigger } from 'react-native-popup-menu';
-
 // Pastikan nama file import ini SESUAI dengan nama file service kamu
 // Kalau file service kamu namanya 'firebaseConfig.ts' atau 'noteService.ts', sesuaikan di sini:
-import { saveOrUpdateNote, toggleArchiveNote, togglePinNote } from '@/service/notesServices';
+import { saveOrUpdateNote, toggleArchiveNote, togglePinNote, toggleTrashNote, } from '@/service/notesServices';
 
 export default function NoteScreen() {
     const router = useRouter();
@@ -32,6 +39,7 @@ export default function NoteScreen() {
     // State untuk UI (Icon berubah warna kalau aktif)
     const [isPinned, setIsPinned] = useState(false);
     const [isArchived, setIsArchived] = useState(false);
+    const [isTrashed, setIsTrashed] = useState(false);
     const [noteId, setNoteId] = useState<string | null>(null);
 
     // 1. Ambil data jika ini mode Edit
@@ -52,19 +60,15 @@ export default function NoteScreen() {
         router.back();
     };
 
-    // 3. Fungsi Pin (Sematkan)
     const handlePin = async () => {
         if (!noteId) {
-            // Kalau catatan baru (belum ada ID), kita simpan dulu di state lokal/UI
-            // (Catatan: Service kamu saat ini men-save 'isPinned: false' untuk new note. 
-            // Nanti kita perlu update service agar mendukung pin saat create)
             Alert.alert("Info", "Simpan catatan terlebih dahulu untuk menyematkan.");
             return;
         }
         
         const result = await togglePinNote(noteId, isPinned);
         if (result?.success) {
-            // setIsPinned(result.newStatus); // Update icon di UI
+            router.back()
         }
     };
 
@@ -76,11 +80,34 @@ export default function NoteScreen() {
         }
         const result = await toggleArchiveNote(noteId, isArchived);
         if (result?.success) {
-            // setIsArchived(result.newStatus);
-            // Opsional: Langsung kembali setelah arsip
             router.back(); 
         }
     };
+
+    //fungsi hapus
+    const handleDelete = async () => {
+        if (!noteId) return;
+        Alert.alert(
+            "KOnfirmasi Hapus",
+            "Apakah kamu yakin ingin menghapus catatan ini?",
+            [
+                {
+                    text: "Batal",
+                    style: "cancel"
+                },
+                {
+                    text: "Ya",
+                    style: "destructive",
+                    onPress: async () => {
+                        const result = await toggleTrashNote(noteId, isTrashed);
+                        if (result?.success) {
+                            router.back();
+                        }
+                    }
+                }
+            ]
+        )
+    }
 
     const themeTextColor = Colors[colorScheme ?? 'light'].text;
 
@@ -92,17 +119,14 @@ export default function NoteScreen() {
                 </TouchableOpacity>
                 
                 <View style={{ flex: 1 }} />
-                
-                {/* Menu Opsi */}
                 <Menu style={{ paddingRight: 15 }}>
                     <MenuTrigger>
                         <Ionicons name="ellipsis-vertical" size={24} color={themeTextColor} />
                     </MenuTrigger>
                     <MenuOptions customStyles={{ optionsContainer: styles.menuOptions }}>
-                        {/* Tombol Sematkan */}
                         <MenuOption onSelect={handlePin}>
                             <View style={styles.menuItem}>
-                                <Ionicons 
+                                <MaterialCommunityIcons
                                     name={isPinned ? "pin" : "pin-outline"} 
                                     size={20} 
                                     color={isPinned ? "#4B0082" : "#444"} 
@@ -113,8 +137,6 @@ export default function NoteScreen() {
                                 </Text>
                             </View>
                         </MenuOption>
-
-                        {/* Tombol Arsip */}
                         <MenuOption onSelect={handleArchive}>
                             <View style={styles.menuItem}>
                                 <Ionicons 
@@ -124,6 +146,17 @@ export default function NoteScreen() {
                                     style={{ marginRight: 10 }} 
                                 />
                                 <Text>Arsipkan</Text>
+                            </View>
+                        </MenuOption>
+                        <MenuOption onSelect={handleDelete}>
+                            <View style={styles.menuItem}>
+                                <Ionicons
+                                    name='trash-outline'
+                                    size={20}
+                                    color="#444"
+                                    style={{marginRight: 10}}
+                                />
+                                <Text>Hapus</Text>
                             </View>
                         </MenuOption>
                     </MenuOptions>
