@@ -146,7 +146,8 @@ export default function arsip() {
             title: item.title,
             content: item.content,
             isPinned: item.isPinned.toString(),
-            isArchived: item.isArchived.toString()
+            isArchived: item.isArchived.toString(),
+            origin: 'archive' 
           }
         })
       }

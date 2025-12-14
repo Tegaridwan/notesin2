@@ -1,5 +1,5 @@
 import { auth, db } from '@/service/firebaseConfig';
-import { addDoc, collection, doc, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { addDoc, collection, deleteDoc, doc, getDocs, query, serverTimestamp, Timestamp, updateDoc, where } from 'firebase/firestore';
 
 export const saveOrUpdateNote = async (id: string | null, title: string, content: string) => {
   try {
@@ -7,7 +7,7 @@ export const saveOrUpdateNote = async (id: string | null, title: string, content
     if (!user) return;
 
     if (title.trim() === '' && content.trim() === '') {
-      return; 
+      return;
     }
 
     if (id) {
@@ -70,8 +70,8 @@ export const toggleArchiveNote = async (id: string, currentStatus: boolean) => {
   }
 };
 
-//funsgi hapus
-export const toggleTrashNote =  async (id: string, currentStatus: boolean) => {
+//funsgi hapus sementara
+export const toggleTrashNote = async (id: string, currentStatus: boolean) => {
   try {
     const user = auth.currentUser;
     if (!user) return;
@@ -80,9 +80,66 @@ export const toggleTrashNote =  async (id: string, currentStatus: boolean) => {
       isTrashed: !currentStatus,
       updatedAt: serverTimestamp()
     });
-    return {success: true, newStatus: !currentStatus};
+    return { success: true, newStatus: !currentStatus };
   } catch (error) {
     console.error("Gagal hapus", error);
-    return {success: false};
+    return { success: false };
+  }
+}
+
+//fungsi hapus permanen
+export const deleteNotePermanently = async (id: string) => {
+  try {
+    const user = auth.currentUser;
+    if (!user) return { success: false, error: 'User not found' };
+
+    // Referensi ke dokumen catatan
+    const noteRef = doc(db, 'users', user.uid, 'notes', id);
+
+    // Perintah Hapus Permanen
+    await deleteDoc(noteRef);
+
+    return { success: true };
+  } catch (error) {
+    console.error("Gagal menghapus permanen:", error);
+    return { success: false, error };
+  }
+};
+
+//fungsi hapus otomatis setelah 30 hari
+export const cleanOldTrash = async () => {
+  try {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const q = query(
+      collection(db, 'users', user.uid, 'notes'),
+      where('isTrashed', '==', true)
+    );
+    const snapshot = await getDocs(q);
+    const now = new Date();
+    const tigaPuluhHari = 30 * 24 * 60 * 60 * 1000;
+    const deletePromises: Promise<void>[] = [];
+
+    snapshot.forEach((document) => {
+      const data = document.data();
+      if (data.updatedAt) {
+        const trashDate = (data.updatedAt as Timestamp).toDate();
+        const diffTime = now.getTime() - trashDate.getTime();
+        if (diffTime > tigaPuluhHari) {
+          console.log(`Menghapus otomatis catatn lama: ${document.id}`);
+          const noteRef = doc(db, 'users', user.uid, 'notes', document.id);
+          deletePromises.push(deleteDoc(noteRef));
+        }
+      }
+    });
+    if (deletePromises.length > 0) {
+      await Promise.all(deletePromises);
+      return { success: true, count: deletePromises.length }
+    }
+    return { success: true, count: 0 }
+  } catch (error) {
+    console.error("Gagal membersihkan sampah:", error);
+    return { success: false, error };
   }
 }

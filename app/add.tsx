@@ -1,6 +1,6 @@
 import { Colors } from '@/constants/theme';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
     Alert,
@@ -32,6 +32,8 @@ export default function NoteScreen() {
     const [isArchived, setIsArchived] = useState(false);
     const [isTrashed, setIsTrashed] = useState(false);
     const [noteId, setNoteId] = useState<string | null>(null);
+    const [isSaving, setIsSaving] = useState(false);
+    const navigation = useNavigation();
 
     // 1. Ambil data jika ini mode Edit
     useEffect(() => {
@@ -45,11 +47,40 @@ export default function NoteScreen() {
     }, [params]);
 
     // 2. Fungsi Simpan saat tombol Back ditekan
+    // const handleBack = async () => {
+    //     // Panggil service simpan
+    //     await saveOrUpdateNote(noteId, title, content);
+    //     router.back();
+    // };
+
     const handleBack = async () => {
-        // Panggil service simpan
+    if (isSaving) return; // Cegah eksekusi kalau sedang proses
+    setIsSaving(true);    // Kunci tombol
+
+    try {
         await saveOrUpdateNote(noteId, title, content);
+        
+        if (navigation.canGoBack()) {
+            router.back();
+        } else {
+            if (params.origin === 'archive') {
+                router.replace('/arsip');
+            } else if (params.origin === 'delete'){
+                router.replace('/(tabs)/sampah')
+            }
+             else {
+                router.replace('/');
+            }
+        }
+    } catch (error) {
+        console.log(error);
         router.back();
-    };
+    } finally {
+        setIsSaving(false); // Buka kunci (opsional, krn layar sdh pindah)
+    }
+};
+
+    const isTrashMode = params.origin === 'delete';
 
     const handlePin = async () => {
         if (!noteId) {
@@ -131,12 +162,12 @@ export default function NoteScreen() {
                         <MenuOption onSelect={handleArchive}>
                             <View style={styles.menuItem}>
                                 <Ionicons 
-                                    name="archive-outline" 
+                                    name={isArchived ? "archive-outline" : "arrow-up-circle-outline"}
                                     size={20} 
                                     color="#444" 
                                     style={{ marginRight: 10 }} 
                                 />
-                                <Text>Arsipkan</Text>
+                                <Text>{isArchived ? "Pulihkan": "Arsipkan"}</Text>
                             </View>
                         </MenuOption>
                         <MenuOption onSelect={handleDelete}>
@@ -160,6 +191,7 @@ export default function NoteScreen() {
                     placeholderTextColor="#999"
                     value={title}
                     onChangeText={setTitle}
+                    editable={!isTrashMode}
                     style={[styles.titleInput, { color: themeTextColor }]}
                 />
                 <TextInput
@@ -167,6 +199,7 @@ export default function NoteScreen() {
                     placeholderTextColor="#999"
                     value={content}
                     onChangeText={setContent}
+                    editable={!isTrashMode}
                     multiline={true}
                     style={[styles.contentInput, { color: themeTextColor }]}
                 />

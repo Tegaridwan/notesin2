@@ -4,7 +4,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { DrawerContentComponentProps, DrawerContentScrollView, DrawerItemList } from '@react-navigation/drawer';
 import { Drawer } from 'expo-router/drawer';
 import React from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function DrawerLayout() {
@@ -40,16 +40,16 @@ export default function DrawerLayout() {
         options={{
           title: 'Notesin',
           drawerIcon: ({ color }: { color: string }) => <Ionicons size={28} name="reader-outline" color={color} />,
-          headerRight: () => (
-            <View style={{ flexDirection: 'row' }}>
-              <Pressable onPress={() => { }}>
-                <Ionicons name='moon-outline' size={29} style={{ marginRight: 15 }} />
-              </Pressable>
-              <Pressable onPress={() => {}}>
-                <Ionicons name='person-circle-outline' size={33} style={{ marginRight: 15 }} />
-              </Pressable>
-            </View>
-          )
+          // headerRight: () => (
+          //   <View style={{ flexDirection: 'row' }}>
+          //     <Pressable onPress={() => { }}>
+          //       <Ionicons name='moon-outline' size={29} style={{ marginRight: 15 }} />
+          //     </Pressable>
+          //     <Pressable onPress={() => {}}>
+          //       <Ionicons name='person-circle-outline' size={33} style={{ marginRight: 15 }} />
+          //     </Pressable>
+          //   </View>
+          // )
         }}
       />
       <Drawer.Screen

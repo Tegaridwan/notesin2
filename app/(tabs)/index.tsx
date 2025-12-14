@@ -180,6 +180,7 @@ export default function HomeScreen() {
   useEffect(() => {
     if (isSelectionMode) {
       navigation.setOptions({
+        headerTitle: `${selectedIds.length} Dipilih`,
         headerRight: () => (
           <View style={{ flexDirection: "row", marginRight: 10 }}>
             <Pressable onPress={() => setSelectedIds([])}>
@@ -204,6 +205,7 @@ export default function HomeScreen() {
       });
     } else {
       navigation.setOptions({
+        headerTitle: 'Notesin',
         headerRight: () => (
           <View style={{ flexDirection: 'row' }}>
             <Pressable onPress={() => { }}>
