@@ -3,16 +3,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-    Alert // Tambahkan Alert untuk feedback
-    ,
-
-
-
-
-
-
-
-
+    Alert,
     Platform,
     SafeAreaView,
     StatusBar,
