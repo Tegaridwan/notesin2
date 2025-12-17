@@ -1,7 +1,7 @@
 import { auth, db } from '@/service/firebaseConfig';
 import { addDoc, collection, deleteDoc, doc, getDocs, query, serverTimestamp, Timestamp, updateDoc, where } from 'firebase/firestore';
 
-export const saveOrUpdateNote = async (id: string | null, title: string, content: string) => {
+export const saveOrUpdateNote = async (id: string | null, title: string, content: string,imageUrl: string | null = null) => {
   try {
     const user = auth.currentUser;
     if (!user) return;
@@ -12,22 +12,29 @@ export const saveOrUpdateNote = async (id: string | null, title: string, content
 
     if (id) {
       const noteRef = doc(db, 'users', user.uid, 'notes', id);
-      await updateDoc(noteRef, {
+      const dataToUpdate: any ={
         title: title,
         content: content,
         updatedAt: serverTimestamp(),
-      });
+      }
+    
+    if (imageUrl != undefined) {
+      dataToUpdate.imageUrl = imageUrl
+    }
+    await updateDoc(noteRef, dataToUpdate)
     } else {
       const notesRef = collection(db, 'users', user.uid, 'notes');
       await addDoc(notesRef, {
         title: title,
         content: content,
+        imageUrl: imageUrl || null,
         isPinned: false,
         isArchived: false,
         isTrashed: false,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
-      });
+      }
+    );
     }
   } catch (error) {
     console.error("Gagal auto-save:", error);
@@ -83,7 +90,7 @@ export const toggleTrashNote = async (id: string, currentStatus: boolean) => {
     return { success: true, newStatus: !currentStatus };
   } catch (error) {
     console.error("Gagal hapus", error);
-    return { success: false };
+    return { success: true };
   }
 }
 
