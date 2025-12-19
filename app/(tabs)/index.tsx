@@ -384,26 +384,25 @@ const styles = StyleSheet.create({
     bottom: 65,
   },
   cardItem: {
-    padding: 16,               // p-4
-    marginBottom: 12,          // mb-3
-    borderRadius: 16,          // rounded-2xl
+    padding: 16,               
+    marginBottom: 12,          
+    borderRadius: 16,          
     borderWidth: 1,
-    backgroundColor: 'white'        // border
+    backgroundColor: 'white'       
   },
   cardNormal: {
-    backgroundColor: 'white',  // bg-white
-    borderColor: '#D1D5DB',    // border-gray-300
+    backgroundColor: 'white',  
+    borderColor: '#D1D5DB',   
   },
   cardSelected: {
-    backgroundColor: '#F3E8FF', // bg-purple-100 (kira-kira)
-    borderColor: '#A855F7',     // border-purple-500 (kira-kira)
+    backgroundColor: '#F3E8FF',
+    borderColor: '#A855F7',     
   },
   card: {
     backgroundColor: '#fff',
     padding: 15,
     borderRadius: 12,
     marginBottom: 15,
-    // Efek Bayangan (Shadow)
     elevation: 2, // Android
     shadowColor: '#000', // iOS
     shadowOffset: { width: 0, height: 1 },
@@ -422,7 +421,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
-    flex: 1, // Agar tidak nabrak icon pin
+    flex: 1,
     marginRight: 10,
   },
   cardContent: {

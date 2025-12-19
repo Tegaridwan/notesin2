@@ -41,7 +41,6 @@ export default function sampah() {
           text: "Ya",
           style: "destructive",
           onPress: async () => {
-            // if (!noteId) return;
             for (const id of selectedIds) {
               const note = notes.find(n => n.id == id);
               if (note) {

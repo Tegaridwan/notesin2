@@ -1,7 +1,10 @@
 import { Colors } from '@/constants/theme';
+import auth, { db } from '@/service/firebaseConfig';
+import { saveOrUpdateNote, toggleArchiveNote, togglePinNote, toggleTrashNote, } from '@/service/notesServices';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
+import { doc, getDoc } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
 import {
     Alert,
@@ -18,11 +21,6 @@ import {
     useColorScheme
 } from 'react-native';
 import { Menu, MenuOption, MenuOptions, MenuTrigger } from 'react-native-popup-menu';
-// Pastikan nama file import ini SESUAI dengan nama file service kamu
-// Kalau file service kamu namanya 'firebaseConfig.ts' atau 'noteService.ts', sesuaikan di sini:
-import auth, { db } from '@/service/firebaseConfig';
-import { saveOrUpdateNote, toggleArchiveNote, togglePinNote, toggleTrashNote, } from '@/service/notesServices';
-import { doc, getDoc } from 'firebase/firestore';
 
 export default function NoteScreen() {
     const router = useRouter();
@@ -31,9 +29,7 @@ export default function NoteScreen() {
 
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
-    // Tambahkan di dalam NoteScreen
-    const [imageRatio, setImageRatio] = useState(1); // Default 1 (Kotak)
-    // State untuk UI (Icon berubah warna kalau aktif)
+    const [imageRatio, setImageRatio] = useState(1);
     const [isPinned, setIsPinned] = useState(false);
     const [isArchived, setIsArchived] = useState(false);
     const [isTrashed, setIsTrashed] = useState(false);
@@ -53,7 +49,6 @@ export default function NoteScreen() {
             });
         }
     }, [imageUrl]);
-    // 1. Ambil data jika ini mode Edit
     useEffect(() => {
             if (params.id) {
                 setNoteId(params.id as string);
